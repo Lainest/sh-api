@@ -50,15 +50,16 @@ class Router
 
     private function routeFound(array $routeInfo): void
     {
-        new Response([
-            "success" => "route found"
-        ], 200);
-        // $handler = $routeInfo[1];
-        // $vars = $routeInfo[2];
 
-        // if (isset($vars['id']))
-        //     $controller->$handler($vars['id']);
-        // else
-        //     $controller->$handler();
+        $gateway = new UserGateway(new Database('localhost', 'steward_hub', 'root', ''));
+        $controller = new UserController($gateway);
+
+        $handler = $routeInfo[1];
+        $vars = $routeInfo[2];
+
+        if (isset($vars['id']))
+            $controller->$handler($vars['id']);
+        else
+            $controller->$handler();
     }
 }
