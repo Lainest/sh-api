@@ -2,16 +2,16 @@
 
 class UserGateway
 {
-    private PDO $db_conn;
+    private PDO $db;
 
     public function __construct(Database $database)
     {
-        $this->db_conn = $database->getConnection();
+        $this->db = $database->getConnection();
     }
 
     public function getAll(): array
     {
-        $stmt = $this->db_conn->query("SELECT * FROM users");
+        $stmt = $this->db->query("SELECT * FROM users");
 
         $data = [];
 
@@ -20,5 +20,18 @@ class UserGateway
         }
 
         return $data;
+    }
+
+    public function getById(string $id): array | false
+    {
+        $sql = "SELECT * FROM users WHERE id = :id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue('id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $result;
     }
 }

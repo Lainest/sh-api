@@ -13,4 +13,11 @@ class UserController
 
         new Response($users, 200);
     }
+
+    public function getUser(string $id)
+    {
+        $user = $this->gateway->getById($id);
+
+        new Response($user, 200);
+    }
 }
