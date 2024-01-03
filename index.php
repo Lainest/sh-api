@@ -8,7 +8,8 @@ set_exception_handler("ErrorHandler::handleException");
 
 header('Content-type: application/json; charset=UTF-8');
 
-include './src/routes.php';
+require_once './src/routes.php';
+require_once './src/envConfig.php';
 
 $router = new Router($dispatcher);
 $router->useDispatcher();
