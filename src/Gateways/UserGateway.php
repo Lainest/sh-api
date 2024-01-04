@@ -35,6 +35,19 @@ class UserGateway
         return $result;
     }
 
+    public function getByUser(string $user): array | false
+    {
+        $sql = "SELECT * FROM users WHERE BINARY user = :user";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue('user', $user, PDO::PARAM_STR);
+        $stmt->execute();
+
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $result;
+    }
+
     public function create(array $data): string
     {
         $sql = "INSERT INTO users (user, password, name, surname, province, date_created, date_updated, role)
