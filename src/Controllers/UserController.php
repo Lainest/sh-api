@@ -93,8 +93,10 @@ class UserController
 
             $token = $jwt->encode($token_data);
 
+            header("Authorization:Bearer $token");
+
             new Response([
-                "Login successful" => $token
+                "success" => "Login successful"
             ], 200);
         } else {
             new Response([

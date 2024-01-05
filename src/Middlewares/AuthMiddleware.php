@@ -3,13 +3,14 @@
 class AuthMiddleware extends Singleton
 {
 
+    const GLOBAL_ROLE = 3;
+
     public function handleRequest(array $routeInfo)
     {
         $handler = $routeInfo[1][0];
         $controller = new UserController(new UserGateway(new Database('localhost', 'steward_hub', 'root', '')));
 
         if ($handler == 'loginUser') {
-            // login
             $controller->$handler();
             return;
         }
@@ -25,16 +26,19 @@ class AuthMiddleware extends Singleton
 
         $user_role = $token->role;
 
-        if ($user_role === $role_requested) {
-            if (isset($vars['id']))
-                $controller->$handler($vars['id']);
-            else
+        if ($this->checkUserRole($user_role, $role_requested)) {
+
+            if (isset($vars['id'])) {
+
+                if ($token->id == $vars['id'])
+                    $controller->$handler($vars['id']);
+                else
+                    new Response([
+                        "error" => "Cannot access this resource"
+                    ], 401);
+            } else {
                 $controller->$handler();
-        } else {
-            new Response([
-                "Error" => "Not authorized"
-            ], 401);
-            die;
+            }
         }
     }
 
@@ -89,5 +93,22 @@ class AuthMiddleware extends Singleton
             }
         }
         return null;
+    }
+
+    private function checkUserRole($user_role, $required_role)
+    {
+
+        if ($required_role === self::GLOBAL_ROLE) {
+            return true;
+        }
+
+        if ($user_role !== $required_role) {
+            new Response([
+                "Error" => "Not authorized"
+            ], 401);
+            die;
+        }
+
+        return true;
     }
 }
