@@ -11,7 +11,8 @@ class UserGateway
 
     public function getAll(): array
     {
-        $stmt = $this->db->query("SELECT * FROM users");
+        $stmt = $this->db->query("SELECT user,name,surname,province
+         FROM users");
 
         $data = [];
 
@@ -24,7 +25,8 @@ class UserGateway
 
     public function getById(string $id): array | false
     {
-        $sql = "SELECT * FROM users WHERE id = :id";
+        $sql = "SELECT user,name,surname,province 
+         FROM users WHERE id = :id";
 
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue('id', $id, PDO::PARAM_INT);

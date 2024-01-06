@@ -8,7 +8,7 @@ class AuthMiddleware extends Singleton
     public function handleRequest(array $routeInfo)
     {
         $handler = $routeInfo[1][0];
-        $controller = new UserController(new UserGateway(new Database('localhost', 'steward_hub', 'root', '')));
+        $controller = new UserController(new UserGateway(new Database()));
 
         if ($handler == 'loginUser') {
             $controller->$handler();
