@@ -6,7 +6,11 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 set_exception_handler("ErrorHandler::handleException");
 
+require_once './src/cors.php';
+
+cors();
 header('Content-type: application/json; charset=UTF-8');
+
 
 require_once './src/routes.php';
 require_once './src/envConfig.php';
