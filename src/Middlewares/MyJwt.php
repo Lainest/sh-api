@@ -8,29 +8,29 @@ use Firebase\JWT\SignatureInvalidException;
 class MyJwt extends Singleton
 {
 
-    private string $secret_key;
+    private string $access_secret_key;
 
     protected function __construct()
     {
-        $this->secret_key = $_ENV['SECRET_KEY'];
+        $this->access_secret_key = $_ENV['ACCESS_SECRET_KEY'];
     }
 
-    public function encode($data)
+    public function encode(array $data)
     {
         $token = [
             'iss' => 'http://localhost/api-sh/',
             'iat' => time(),
-            'exp' => time() + 3600,
+            'exp' => time() + 3600 / 2,
             'data' => $data
         ];
 
-        return JWT::encode($token, $this->secret_key, 'HS256');
+        return JWT::encode($token, $this->access_secret_key, 'HS256');
     }
 
     public function decode($token)
     {
         try {
-            $decode = JWT::decode($token, new Key($this->secret_key, 'HS256'));
+            $decode = JWT::decode($token, new Key($this->access_secret_key, 'HS256'));
             return $decode->data;
         } catch (ExpiredException | SignatureInvalidException $e) {
             new Response(

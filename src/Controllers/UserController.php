@@ -1,7 +1,11 @@
 <?php
 
+include __DIR__ . '/UserValidationTrait.php';
+
 class UserController
 {
+    use UserValidationTrait;
+
     public function __construct(private UserGateway $gateway)
     {
     }
@@ -21,7 +25,7 @@ class UserController
         if ($user === false) {
             new Response([
                 "Error" => "User not found"
-            ], 500);
+            ], 404);
             return;
         }
 
@@ -46,21 +50,6 @@ class UserController
         new Response([
             $id => "User created"
         ], 201);
-    }
-
-    private function validateUserRegistration($data): array | false
-    {
-        $validation = Validation::getInstance();
-
-        $validation->setData($data);
-
-        $validation->field('user')->type('text')->pattern("/^[a-z0-9_-]{3,15}$/")->required();
-        $validation->field('password')->type('text')->pattern("/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/")->required();
-        $validation->field('name')->type('text')->required();
-        $validation->field('surname')->type('text')->required();
-        $validation->field('province')->type('text')->required()->pattern("/BO|FE/");
-
-        return $validation->hasErrors();
     }
 
     public function loginUser()
@@ -91,29 +80,15 @@ class UserController
 
             $jwt = MyJwt::getInstance();
 
-            $token = $jwt->encode($token_data);
-
-            header("Authorization:Bearer $token");
+            $access_token = $jwt->encode($token_data);
 
             new Response([
-                "success" => "Login successful"
+                "access_token" => $access_token
             ], 200);
         } else {
             new Response([
                 "Login error" => "Password not valid"
             ], 500);
         }
-    }
-
-    private function validateUserLogin($data): array | false
-    {
-        $validation = Validation::getInstance();
-
-        $validation->setData($data);
-
-        $validation->field('user')->type('text')->pattern("/^[a-z0-9_-]{3,15}$/")->required();
-        $validation->field('password')->type('text')->pattern("/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/")->required();
-
-        return $validation->hasErrors();
     }
 }
