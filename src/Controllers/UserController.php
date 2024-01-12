@@ -2,7 +2,7 @@
 
 include __DIR__ . '/UserValidationTrait.php';
 
-class UserController
+class UserController implements Controller
 {
     use UserValidationTrait;
 
@@ -10,7 +10,7 @@ class UserController
     {
     }
 
-    public function getUsers()
+    public function getAll(): void
     {
 
         $users = $this->gateway->getAll();
@@ -18,7 +18,7 @@ class UserController
         new Response($users, 200);
     }
 
-    public function getUser(string $id)
+    public function getOne(string $id): void
     {
         $user = $this->gateway->getById($id);
 
@@ -32,7 +32,7 @@ class UserController
         new Response($user, 200);
     }
 
-    public function registerUser()
+    public function create(): void
     {
         $body = (array) json_decode(file_get_contents("php://input"), true);
         $validation_errors = $this->validateUserRegistration($body);
@@ -52,7 +52,7 @@ class UserController
         ], 201);
     }
 
-    public function loginUser()
+    public function login()
     {
         $body = (array) json_decode(file_get_contents("php://input"), true);
         $validation_errors = $this->validateUserLogin($body);
