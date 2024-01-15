@@ -15,6 +15,9 @@ $dispatcher = simpleDispatcher(function (RouteCollector $r) {
         $r->addRoute('POST', '/login', ['UserController@login', 3]);
     });
 
-    // $r->addRoute('PUT', '/api-sh/users/{id:\d+}', ['updateUser', 2]);
-    // $r->addRoute('DELETE', '/api-sh/users/{id:\d+}', '[deleteUser], 1');
+    $r->addGroup("$base_url/events", function (FastRoute\RouteCollector $r) {
+        $r->addRoute('GET', '/all', ['EventsController@getAll', 1]);
+        $r->addRoute('GET', '/{id:\d+}', ['EventsController@getOne', 3]);
+        $r->addRoute('POST', '/create', ['EventsController@create', 1]);
+    });
 });
