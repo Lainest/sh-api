@@ -6,8 +6,11 @@ class UserController implements Controller
 {
     use UserValidationTrait;
 
-    public function __construct(private UserGateway $gateway)
+    private UserGateway $gateway;
+
+    public function __construct()
     {
+        $this->gateway = new UserGateway(new Database());
     }
 
     public function getAll(): void
