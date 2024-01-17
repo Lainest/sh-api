@@ -20,7 +20,7 @@ class MyJwt extends Singleton
         $token = [
             'iss' => 'http://localhost/api-sh/',
             'iat' => time(),
-            'exp' => time() + 3600 / 2,
+            'exp' => time() + 3600 * 7, // /2
             'data' => $data
         ];
 
