@@ -15,7 +15,6 @@ class UserController implements Controller
 
     public function getAll(): void
     {
-
         $users = $this->gateway->getAll();
 
         new Response($users, 200);
@@ -27,9 +26,8 @@ class UserController implements Controller
 
         if ($user === false) {
             new Response([
-                "Error" => "User not found"
+                "message" => "User not found"
             ], 404);
-            return;
         }
 
         new Response($user, 200);
@@ -37,61 +35,131 @@ class UserController implements Controller
 
     public function create(): void
     {
-        $body = (array) json_decode(file_get_contents("php://input"), true);
-        $validation_errors = $this->validateUserRegistration($body);
+        $data = (array) json_decode(file_get_contents("php://input"), true);
 
-        if (is_array($validation_errors)) {
-            http_response_code(422);
-            echo json_encode(["errors" => $validation_errors]);
-            die;
-        }
+        $this->handleCreationErrors($data);
 
-        $body['password'] = password_hash($body['password'], PASSWORD_BCRYPT);
+        $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
 
-        $id = $this->gateway->create($body);
+        $user_id = $this->gateway->create($data);
+        $user = $this->gateway->getById($user_id);
+
+        $tokens = $this->createTokens($user);
+
+        $this->setRefreshCookie($tokens['refresh']);
 
         new Response([
-            $id => "User created"
+            "message" => "User successfully registrated",
+            "access_token" => $tokens['access']
         ], 201);
+    }
+
+    private function handleCreationErrors(array $data): void
+    {
+        $validation_errors = $this->validateUserRegistration($data);
+
+        if (is_array($validation_errors)) {
+            new Response([
+                "message" => "Registration failed",
+                "error" => $validation_errors
+            ], 422);
+        }
     }
 
     public function login()
     {
-        $body = (array) json_decode(file_get_contents("php://input"), true);
-        $validation_errors = $this->validateUserLogin($body);
+        $data = (array) json_decode(file_get_contents("php://input"), true);
 
-        if (is_array($validation_errors)) {
-            http_response_code(422);
-            echo json_encode(["errors" => $validation_errors]);
-            die;
-        }
+        $this->handleLoginErrors($data);
 
-        $user = $this->gateway->getByUser($body['user']);
+        $user = $this->gateway->getByUser($data['user']);
 
         if ($user === false) {
             new Response([
-                "Error" => "User not found"
+                "error" => "User not found"
             ], 404);
         }
 
-        if (password_verify($body['password'], $user['password'])) {
-            $token_data = [
-                'id' => $user['id'],
-                'user' => $user['user'],
-                'role' => $user['role'],
-            ];
+        if ($this->authenticate($user['password'], $data['password'])) {
 
-            $jwt = MyJwt::getInstance();
+            $tokens = $this->createTokens($user);
 
-            $access_token = $jwt->encode($token_data);
+            $this->setRefreshCookie($tokens['refresh']);
 
             new Response([
-                "access_token" => $access_token
+                "message" => "Login successful",
+                "access_token" => $tokens['access']
             ], 200);
-        } else {
-            new Response([
-                "Login error" => "Password not valid"
-            ], 500);
         }
+    }
+
+    private function handleLoginErrors($data): void
+    {
+        $validation_errors = $this->validateUserLogin($data);
+
+        if (is_array($validation_errors)) {
+            new Response([
+                "error" => $validation_errors,
+                "message" => "Login failed"
+            ], 422);
+        }
+    }
+
+    private function authenticate(string $stored_password, string $user_password): bool
+    {
+        if (password_verify($user_password, $stored_password)) {
+            return true;
+        }
+
+        new Response([
+            "error" => "Password not valid",
+            "message" => "Login failed"
+        ], 500);
+    }
+
+    public function refresh()
+    {
+        if (!isset($_COOKIE['refresh_token'])) {
+            new Response([
+                "message" => "User not authorized",
+                "error" => "Refresh token missing"
+            ], 401);
+        }
+
+        $jwt = MyJwt::getInstance();
+
+        $decoded_data = $jwt->decode($_COOKIE['refresh_token'], 'refresh');
+        $user_data = json_decode(json_encode($decoded_data), true);
+
+        $tokens = $this->createTokens($user_data);
+
+        new Response([
+            "message" => "Token refreshed",
+            "access_token" => $tokens['access']
+        ], 200);
+    }
+
+    private function createTokens($user): array
+    {
+        $jwt = MyJwt::getInstance();
+
+        $token_data = [
+            'id' => $user['id'],
+            'user' => $user['user'],
+            'role' => $user['role']
+        ];
+
+        $tokens = array();
+
+        $tokens['access'] = $jwt->encode($token_data);
+        $tokens['refresh'] = $jwt->encode($token_data, 'refresh');
+
+        return $tokens;
+    }
+
+    private function setRefreshCookie($refresh_token): void
+    {
+        $max_age = MyJwt::REFRESH_EXPIRATION_TIME;
+        header("Set-Cookie: refresh_token=$refresh_token; Max-Age=$max_age; HttpOnly; SameSite=Strict");
     }
 }

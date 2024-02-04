@@ -3,43 +3,28 @@
 class AuthMiddleware extends Singleton
 {
 
-    const GLOBAL_ROLE = 3;
+    const ROLE_ADMIN = 1;
+    const ROLE_USER = 2;
 
     public function handleRequest(array $routeInfo)
     {
         list($controller_name, $handler) = explode('@', $routeInfo[1][0]);
 
-        $controller = new $controller_name(new UserGateway(new Database()));
+        $controller = new $controller_name();
 
-        if ($handler == 'login') {
+        if ($handler == 'login' || $handler == 'refresh') {
             $controller->$handler();
             return;
         }
 
         $token = $this->validateJwt();
 
-        if ($token === null) {
-            die;
-        }
-
         $role_requested = $routeInfo[1][1];
-        $vars = $routeInfo[2];
 
-        $user_role = $token->role;
 
-        if ($this->checkUserRole($user_role, $role_requested)) {
+        if ($this->checkUserRole($token->role, $role_requested)) {
 
-            if (isset($vars['id'])) {
-
-                if ($token->id == $vars['id'])
-                    $controller->$handler($vars['id']);
-                else
-                    new Response([
-                        "error" => "Cannot access this resource"
-                    ], 401);
-            } else {
-                $controller->$handler();
-            }
+            $this->callHandler($routeInfo[2], $token, $controller, $handler);
         }
     }
 
@@ -59,21 +44,33 @@ class AuthMiddleware extends Singleton
         return $jwt->decode($token);
     }
 
-    /** 
-     * Get header Authorization
-     * */
+    private function callHandler(array $request_vars, $token, Controller $controller, string $handler)
+    {
+
+        if (isset($request_vars['id'])) {
+
+            if ($token->id == $request_vars['id'])
+                $controller->$handler($request_vars['id']);
+            else
+                new Response([
+                    "error" => "Cannot access this resource"
+                ], 401);
+        } else {
+            $controller->$handler();
+        }
+    }
+
     private function getAuthorizationHeader()
     {
         $headers = null;
         if (isset($_SERVER['Authorization'])) {
             $headers = trim($_SERVER["Authorization"]);
-        } else if (isset($_SERVER['HTTP_AUTHORIZATION'])) { //Nginx or fast CGI
+        } else if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            //Nginx or fast CGI
             $headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
         } elseif (function_exists('apache_request_headers')) {
             $requestHeaders = apache_request_headers();
-            // Server-side fix for bug in old Android versions (a nice side-effect of this fix means we don't care about capitalization for Authorization)
             $requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
-            //print_r($requestHeaders);
             if (isset($requestHeaders['Authorization'])) {
                 $headers = trim($requestHeaders['Authorization']);
             }
@@ -81,13 +78,9 @@ class AuthMiddleware extends Singleton
         return $headers;
     }
 
-    /**
-     * get access token from header
-     * */
     private function getBearerToken()
     {
         $headers = $this->getAuthorizationHeader();
-        // HEADER: Get the access token from the header
         if (!empty($headers)) {
             if (preg_match('/Bearer\s(\S+)/', $headers, $matches)) {
                 return $matches[1];
@@ -98,8 +91,7 @@ class AuthMiddleware extends Singleton
 
     private function checkUserRole($user_role, $required_role)
     {
-
-        if ($required_role === self::GLOBAL_ROLE) {
+        if ($user_role === self::ROLE_ADMIN) {
             return true;
         }
 

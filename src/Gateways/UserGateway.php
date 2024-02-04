@@ -25,7 +25,7 @@ class UserGateway implements Gateway
 
     public function getById(string $id): array | false
     {
-        $sql = "SELECT user,name,surname,province 
+        $sql = "SELECT id,user,name,surname,province,role 
          FROM users WHERE id = :id";
 
         $stmt = $this->db->prepare($sql);
